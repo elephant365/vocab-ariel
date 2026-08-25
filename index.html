@@ -10,8 +10,8 @@
       --bg: #f3f4f6;
       --card-bg: #ffffff;
       --text: #1f2937;
-      --navy: #1e3a8a; /* 深藍色 */
-      --gray-text: #6b7280; /* 灰色字體 */
+      --navy: #1e3a8a;
+      --gray-text: #6b7280;
     }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -55,7 +55,6 @@
     .section { display: none; }
     .active { display: block; }
     
-    /* 閃卡樣式 */
     .flashcard {
       min-height: 200px;
       display: flex;
@@ -75,6 +74,12 @@
       background: #e0e7ff;
       color: var(--primary);
     }
+    .loading-overlay {
+      text-align: center;
+      padding: 20px;
+      color: var(--gray-text);
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
@@ -82,87 +87,144 @@
 <div class="container">
   <h1>📚 單字隨身背</h1>
 
-  <label for="lessonSelect"><b>選擇課堂：</b></label>
-  <select id="lessonSelect" onchange="loadLesson()">
-    <option value="L1">Lesson 1: 校園與社交</option>
-    <option value="L2">Lesson 2: 週末休閒活動</option>
-  </select>
+  <div id="loadingStatus" class="loading-overlay">⏳ 正在從 Google Sheet 載入單字...</div>
 
-  <div style="display: flex; gap: 5px;">
-    <button onclick="showSection('listSec')">📋 列表</button>
-    <button class="btn-secondary" onclick="startAudioMode()">🎧 通勤聽</button>
-    <button class="btn-warning" onclick="startFlashcards()">🎴 閃卡</button>
-    <button style="background: #ef4444;" onclick="startQuiz()">📝 測驗</button>
-  </div>
+  <div id="mainContent" style="display:none;">
+    <label for="lessonSelect"><b>選擇課堂：</b></label>
+    <select id="lessonSelect" onchange="loadLesson()">
+      <!-- 動態載入課堂選項 -->
+    </select>
 
-  <hr style="border:0; border-top:1px solid #ccc; margin: 15px 0;">
-
-  <!-- Phase 1: 列表 -->
-  <div id="listSec" class="section active">
-    <h3>單字列表</h3>
-    <div id="wordList"></div>
-  </div>
-
-  <!-- Phase 2: 通勤播放 -->
-  <div id="audioSec" class="section">
-    <h3>🎧 通勤播放模式</h3>
-    <div class="card" style="text-align: center;">
-      <p id="audioStatus" style="color: var(--gray-text); font-size: 0.9rem;">準備播放...</p>
-      <div id="audioCurrentWord" style="font-size: 1.5rem; font-weight: bold; color: var(--primary);">-</div>
-      <div id="audioCurrentZh" style="font-size: 1.1rem; margin-top: 5px;">-</div>
-      <div id="audioCurrentSentenceEn" class="example-en" style="margin-top: 15px;">-</div>
-      <div id="audioCurrentSentenceZh" class="example-zh" style="margin-bottom: 15px;">-</div>
-      <button onclick="stopAudio()" style="background: #ef4444;">⏹️ 停止播放</button>
+    <div style="display: flex; gap: 5px;">
+      <button onclick="showSection('listSec')">📋 列表</button>
+      <button class="btn-secondary" onclick="startAudioMode()">🎧 通勤聽</button>
+      <button class="btn-warning" onclick="startFlashcards()">🎴 閃卡</button>
+      <button style="background: #ef4444;" onclick="startQuiz()">📝 測驗</button>
     </div>
-  </div>
 
-  <!-- Phase 3: 閃卡 -->
-  <div id="cardSec" class="section">
-    <h3>🎴 閃卡複習</h3>
-    <div class="card flashcard" id="flashcardBox" onclick="flipCard()">
-      點擊開始
-    </div>
-    <div id="cardControls" style="display:none; margin-top: 10px;">
-      <button onclick="nextCard()">下一題 ➔</button>
-    </div>
-  </div>
+    <hr style="border:0; border-top:1px solid #ccc; margin: 15px 0;">
 
-  <!-- Phase 4: 測驗 -->
-  <div id="quizSec" class="section">
-    <h3>📝 例句克漏字測驗</h3>
-    <div class="card">
-      <p id="quizSentence" style="font-size: 1.1rem; font-weight: bold; color: var(--navy);"></p>
-      <p id="quizMeaning" class="example-zh" style="font-size: 0.95rem; margin-bottom: 10px;"></p>
-      <input type="text" id="quizInput" placeholder="請輸入缺少的英文單字" style="width:100%; box-sizing: border-box; padding:10px; margin-bottom:10px;">
-      <button onclick="checkQuiz()">送出答案</button>
-      <p id="quizResult" style="font-weight: bold; margin-top: 10px;"></p>
+    <!-- Phase 1: 列表 -->
+    <div id="listSec" class="section active">
+      <h3>單字列表</h3>
+      <div id="wordList"></div>
+    </div>
+
+    <!-- Phase 2: 通勤播放 -->
+    <div id="audioSec" class="section">
+      <h3>🎧 通勤播放模式</h3>
+      <div class="card" style="text-align: center;">
+        <p id="audioStatus" style="color: var(--gray-text); font-size: 0.9rem;">準備播放...</p>
+        <div id="audioCurrentWord" style="font-size: 1.5rem; font-weight: bold; color: var(--primary);">-</div>
+        <div id="audioCurrentZh" style="font-size: 1.1rem; margin-top: 5px;">-</div>
+        <div id="audioCurrentSentenceEn" class="example-en" style="margin-top: 15px;">-</div>
+        <div id="audioCurrentSentenceZh" class="example-zh" style="margin-bottom: 15px;">-</div>
+        <button onclick="stopAudio()" style="background: #ef4444;">⏹️ 停止播放</button>
+      </div>
+    </div>
+
+    <!-- Phase 3: 閃卡 -->
+    <div id="cardSec" class="section">
+      <h3>🎴 閃卡複習</h3>
+      <div class="card flashcard" id="flashcardBox" onclick="flipCard()">
+        點擊開始
+      </div>
+      <div id="cardControls" style="display:none; margin-top: 10px;">
+        <button onclick="nextCard()">下一題 ➔</button>
+      </div>
+    </div>
+
+    <!-- Phase 4: 測驗 -->
+    <div id="quizSec" class="section">
+      <h3>📝 例句克漏字測驗</h3>
+      <div class="card">
+        <p id="quizSentence" style="font-size: 1.1rem; font-weight: bold; color: var(--navy);"></p>
+        <p id="quizMeaning" class="example-zh" style="font-size: 0.95rem; margin-bottom: 10px;"></p>
+        <input type="text" id="quizInput" placeholder="請輸入缺少的英文單字" style="width:100%; box-sizing: border-box; padding:10px; margin-bottom:10px;">
+        <button onclick="checkQuiz()">送出答案</button>
+        <p id="quizResult" style="font-weight: bold; margin-top: 10px;"></p>
+      </div>
     </div>
   </div>
 </div>
 
 <script>
-// 單字資料庫
-const lessonsData = {
-  "L1": [
-    { word: "definitely", pos: "adv.", kk: "/ˈdef.ən.ət.li/", zh: "一定；肯定", exEn: "I will definitely go to the movie with you this Saturday.", exZh: "我這週六一定會跟你去看電影。" },
-    { word: "popular", pos: "adj.", kk: "/ˈpɑː.pjə.lɚ/", zh: "受歡迎的", exEn: "He is a very popular student in our school.", exZh: "他是我們學校非常受歡迎的學生。" }
-  ],
-  "L2": [
-    { word: "activity", pos: "n.", kk: "/ækˈtɪv.ə.t̬i/", zh: "活動", exEn: "Playing basketball is my favorite weekend activity.", exZh: "打籃球是我最喜歡的週末活動。" }
-  ]
-};
+// 設定你的 Google Sheet ID
+const SHEET_ID = '1QSGkj3JpQ4klVAMBSTfffBaF1C4cO48sQI0ZLIBy898';
+// 使用 Google Visualization API 自動抓取表單資料
+const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
 
+let lessonsData = {};
 let currentLesson = [];
 let synth = window.speechSynthesis;
 let audioTimeout = null;
 
+// 從 Google Sheet 抓取資料並解析
+async function fetchGoogleSheetData() {
+  try {
+    const response = await fetch(SHEET_URL);
+    const text = await response.text();
+    // 移除 Google 返回的 JSONP 包裝字串
+    const jsonString = text.substring(47, text.length - 2);
+    const data = JSON.parse(jsonString);
+    
+    const rows = data.table.rows;
+    lessonsData = {};
+
+    rows.forEach(row => {
+      const c = row.c;
+      if (!c || !c[0] || !c[0].v) return; // 略過空白列
+
+      // 八欄順序：單字[0], 例句[1], KK音標[2], 詞性[3], 單字中文[4], 例句中文[5], 日期[6], Unit[7]
+      const word = c[0] ? String(c[0].v).trim() : "";
+      const exEn = c[1] ? String(c[1].v).trim() : "";
+      const kk = c[2] ? String(c[2].v).trim() : "";
+      const pos = c[3] ? String(c[3].v).trim() : "";
+      const zh = c[4] ? String(c[4].v).trim() : "";
+      const exZh = c[5] ? String(c[5].v).trim() : "";
+      const unit = c[7] ? String(c[7].v).trim() : "未分類";
+
+      // 如果標頭列存在，跳過
+      if (word === "單字" || word === "Word") return;
+
+      if (!lessonsData[unit]) {
+        lessonsData[unit] = [];
+      }
+
+      lessonsData[unit].push({ word, pos, kk, zh, exEn, exZh });
+    });
+
+    populateLessonSelect();
+    document.getElementById("loadingStatus").style.display = "none";
+    document.getElementById("mainContent").style.display = "block";
+    loadLesson();
+  } catch (error) {
+    console.error("載入 Google Sheet 失敗:", error);
+    document.getElementById("loadingStatus").innerText = "❌ 資料載入失敗，請確認 Google Sheet 共用與發布設定。";
+  }
+}
+
+// 動態生成課堂下拉選單
+function populateLessonSelect() {
+  const select = document.getElementById("lessonSelect");
+  select.innerHTML = "";
+  const units = Object.keys(lessonsData);
+  
+  units.forEach(unit => {
+    const option = document.createElement("option");
+    option.value = unit;
+    option.innerText = unit;
+    select.appendChild(option);
+  });
+}
+
 function loadLesson() {
   const lessonKey = document.getElementById("lessonSelect").value;
-  currentLesson = lessonsData[lessonKey];
+  currentLesson = lessonsData[lessonKey] || [];
   renderWordList();
 }
 
-// 通用發音工具
+// 發音工具
 function speak(text, lang = 'en-US', callback) {
   if (synth.speaking) synth.cancel();
   const utter = new SpeechSynthesisUtterance(text);
@@ -172,7 +234,6 @@ function speak(text, lang = 'en-US', callback) {
   synth.speak(utter);
 }
 
-// 停止所有聲音與計時器
 function stopAudio() {
   isPlayingAudio = false;
   if (audioTimeout) clearTimeout(audioTimeout);
@@ -225,7 +286,6 @@ function playNextAudioStep() {
   document.getElementById("audioCurrentSentenceEn").innerText = item.exEn;
   document.getElementById("audioCurrentSentenceZh").innerText = item.exZh;
 
-  // 播放流程：英文單字 -> (停1.5秒) -> 中文翻譯 -> 英文例句 -> 中文例句翻譯 -> (停2秒) -> 下一題
   speak(item.word, 'en-US', () => {
     audioTimeout = setTimeout(() => {
       if (!isPlayingAudio) return;
@@ -239,11 +299,11 @@ function playNextAudioStep() {
               if (!isPlayingAudio) return;
               audioIndex++;
               playNextAudioStep();
-            }, 2000); // 結束停頓 2 秒
+            }, 2000);
           });
         });
       });
-    }, 1500); // 單字後停頓 1.5 秒
+    }, 1500);
   });
 }
 
@@ -263,7 +323,6 @@ function showCard() {
   document.getElementById("cardControls").style.display = "none";
   const item = currentLesson[cardIndex];
   
-  // 點擊前頁面：第1列英文單字(+音訊鍵), 第2列音標, 第3列詞性, 第4列英文例句(+音訊鍵)
   document.getElementById("flashcardBox").innerHTML = `
     <div class="word-title" style="font-size: 1.5rem;">${item.word} 
       <button class="audio-icon-btn" onclick="event.stopPropagation(); speak('${item.word}')">🔊</button>
@@ -283,7 +342,6 @@ function flipCard() {
   isFlipped = true;
   const item = currentLesson[cardIndex];
   
-  // 點擊後頁面：第1列英文單字, 第2列中文, 第3列英文例句, 第4列中文例句(灰色小字)
   document.getElementById("flashcardBox").innerHTML = `
     <div class="word-title" style="font-size: 1.5rem;">${item.word}</div>
     <div style="font-size: 1.1rem; font-weight: bold; margin: 8px 0; color:#10b981;">${item.zh}</div>
@@ -293,14 +351,13 @@ function flipCard() {
   
   document.getElementById("cardControls").style.display = "block";
 
-  // 翻牌自動語音流程：英文單字 -> 英文單字 -> (停1秒) -> 中文翻譯 -> 英文例句
   speak(item.word, 'en-US', () => {
     speak(item.word, 'en-US', () => {
       audioTimeout = setTimeout(() => {
         speak(item.zh, 'zh-TW', () => {
           speak(item.exEn, 'en-US');
         });
-      }, 1000); // 停頓 1 秒
+      }, 500);
     });
   });
 }
@@ -350,8 +407,8 @@ function checkQuiz() {
   }
 }
 
-// 初始化
-loadLesson();
+// 啟動抓取資料
+fetchGoogleSheetData();
 </script>
 </body>
 </html>
