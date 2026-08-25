@@ -10,6 +10,8 @@
       --bg: #f3f4f6;
       --card-bg: #ffffff;
       --text: #1f2937;
+      --navy: #1e3a8a; /* 深藍色 */
+      --gray-text: #6b7280; /* 灰色字體 */
     }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -47,23 +49,32 @@
       box-shadow: 0 2px 5px rgba(0,0,0,0.05);
     }
     .word-title { font-size: 1.2rem; font-weight: bold; color: var(--primary); }
-    .kk { color: #6b7280; font-size: 0.9rem; }
-    .example { font-size: 0.95rem; margin-top: 5px; color: #374151; }
+    .kk { color: var(--gray-text); font-size: 0.9rem; }
+    .example-en { font-size: 0.95rem; margin-top: 5px; color: var(--navy); font-weight: 500; }
+    .example-zh { font-size: 0.85rem; margin-top: 2px; color: var(--gray-text); font-weight: normal; }
     .section { display: none; }
     .active { display: block; }
     
     /* 閃卡樣式 */
     .flashcard {
-      min-height: 180px;
+      min-height: 200px;
       display: flex;
       flex-direction: column;
       justify-content: center;
       align-items: center;
       text-align: center;
-      font-size: 1.4rem;
+      cursor: pointer;
     }
-    .score-btns { display: flex; gap: 5px; margin-top: 10px; }
-    .score-btns button { flex: 1; font-size: 0.85rem; padding: 8px; }
+    .audio-icon-btn {
+      width: auto !important;
+      display: inline-block;
+      padding: 2px 8px !important;
+      margin: 0 0 0 5px !important;
+      font-size: 0.85rem;
+      border-radius: 6px;
+      background: #e0e7ff;
+      color: var(--primary);
+    }
   </style>
 </head>
 <body>
@@ -86,42 +97,43 @@
 
   <hr style="border:0; border-top:1px solid #ccc; margin: 15px 0;">
 
+  <!-- Phase 1: 列表 -->
   <div id="listSec" class="section active">
     <h3>單字列表</h3>
     <div id="wordList"></div>
   </div>
 
+  <!-- Phase 2: 通勤播放 -->
   <div id="audioSec" class="section">
     <h3>🎧 通勤播放模式</h3>
     <div class="card" style="text-align: center;">
-      <p id="audioStatus">準備播放...</p>
-      <div id="audioCurrentWord" style="font-size: 1.5rem; font-weight: bold;">-</div>
-      <div id="audioCurrentSentence" style="color: #6b7280; margin-top: 10px;">-</div>
-      <button onclick="stopAudio()">⏹️ 停止播放</button>
+      <p id="audioStatus" style="color: var(--gray-text); font-size: 0.9rem;">準備播放...</p>
+      <div id="audioCurrentWord" style="font-size: 1.5rem; font-weight: bold; color: var(--primary);">-</div>
+      <div id="audioCurrentZh" style="font-size: 1.1rem; margin-top: 5px;">-</div>
+      <div id="audioCurrentSentenceEn" class="example-en" style="margin-top: 15px;">-</div>
+      <div id="audioCurrentSentenceZh" class="example-zh" style="margin-bottom: 15px;">-</div>
+      <button onclick="stopAudio()" style="background: #ef4444;">⏹️ 停止播放</button>
     </div>
   </div>
 
+  <!-- Phase 3: 閃卡 -->
   <div id="cardSec" class="section">
-    <h3>🎴 閃卡複習 (正向：看英猜中)</h3>
+    <h3>🎴 閃卡複習</h3>
     <div class="card flashcard" id="flashcardBox" onclick="flipCard()">
       點擊開始
     </div>
-    <div id="cardControls" style="display:none;">
-      <p style="text-align: center; font-size: 0.9rem; color: #6b7280;">記憶熟悉度評分：</p>
-      <div class="score-btns">
-        <button style="background:#ef4444;" onclick="nextCard(1)">🔴 不熟</button>
-        <button style="background:#f59e0b;" onclick="nextCard(2)">🟡 模糊</button>
-        <button style="background:#10b981;" onclick="nextCard(3)">🟢 熟悉</button>
-      </div>
+    <div id="cardControls" style="display:none; margin-top: 10px;">
+      <button onclick="nextCard()">下一題 ➔</button>
     </div>
   </div>
 
+  <!-- Phase 4: 測驗 -->
   <div id="quizSec" class="section">
     <h3>📝 例句克漏字測驗</h3>
     <div class="card">
-      <p id="quizSentence" style="font-size: 1.1rem;"></p>
-      <p id="quizMeaning" style="color: #6b7280;"></p>
-      <input type="text" id="quizInput" placeholder="請輸入缺少的英文單字" style="width:90%; padding:10px; margin-bottom:10px;">
+      <p id="quizSentence" style="font-size: 1.1rem; font-weight: bold; color: var(--navy);"></p>
+      <p id="quizMeaning" class="example-zh" style="font-size: 0.95rem; margin-bottom: 10px;"></p>
+      <input type="text" id="quizInput" placeholder="請輸入缺少的英文單字" style="width:100%; box-sizing: border-box; padding:10px; margin-bottom:10px;">
       <button onclick="checkQuiz()">送出答案</button>
       <p id="quizResult" style="font-weight: bold; margin-top: 10px;"></p>
     </div>
@@ -129,7 +141,7 @@
 </div>
 
 <script>
-// 假資料庫 (預設由電腦端 AI 生成後帶入)
+// 單字資料庫
 const lessonsData = {
   "L1": [
     { word: "definitely", pos: "adv.", kk: "/ˈdef.ən.ət.li/", zh: "一定；肯定", exEn: "I will definitely go to the movie with you this Saturday.", exZh: "我這週六一定會跟你去看電影。" },
@@ -142,6 +154,7 @@ const lessonsData = {
 
 let currentLesson = [];
 let synth = window.speechSynthesis;
+let audioTimeout = null;
 
 function loadLesson() {
   const lessonKey = document.getElementById("lessonSelect").value;
@@ -149,29 +162,36 @@ function loadLesson() {
   renderWordList();
 }
 
-// 語音發音工具
+// 通用發音工具
 function speak(text, lang = 'en-US', callback) {
   if (synth.speaking) synth.cancel();
   const utter = new SpeechSynthesisUtterance(text);
   utter.lang = lang;
-  utter.rate = 0.9; // 稍微放慢語速適合學生
+  utter.rate = 0.9;
   if (callback) utter.onend = callback;
   synth.speak(utter);
 }
 
-// 1. 渲染單字列表
+// 停止所有聲音與計時器
+function stopAudio() {
+  isPlayingAudio = false;
+  if (audioTimeout) clearTimeout(audioTimeout);
+  if (synth) synth.cancel();
+}
+
+// 1. 列表模式
 function renderWordList() {
   const container = document.getElementById("wordList");
   container.innerHTML = "";
   currentLesson.forEach((w) => {
     container.innerHTML += `
       <div class="card">
-        <div class="word-title">${w.word} <span style="font-size:0.9rem; color:#4f46e5;">[${w.pos}]</span> 
-          <button style="width:auto; padding:3px 8px;" onclick="speak('${w.word}')">🔊</button>
+        <div class="word-title">${w.word} <span style="font-size:0.85rem; color:var(--primary); font-weight:normal;">[${w.pos}]</span> 
+          <button class="audio-icon-btn" onclick="speak('${w.word}')">🔊</button>
         </div>
         <div class="kk">${w.kk} | ${w.zh}</div>
-        <div class="example"><b>例句：</b>${w.exEn} <button style="width:auto; padding:2px 6px;" onclick="speak('${w.exEn}')">🔊</button></div>
-        <div class="example" style="color:#6b7280;">${w.exZh}</div>
+        <div class="example-en">例句：${w.exEn} <button class="audio-icon-btn" onclick="speak('${w.exEn.replace(/'/g, "\\'")}')">🔊</button></div>
+        <div class="example-zh">${w.exZh}</div>
       </div>
     `;
   });
@@ -183,7 +203,7 @@ function showSection(id) {
   document.getElementById(id).classList.add('active');
 }
 
-// 2. 通勤語音循環播放模式
+// 2. 通勤播放模式
 let isPlayingAudio = false;
 let audioIndex = 0;
 
@@ -196,36 +216,35 @@ function startAudioMode() {
 
 function playNextAudioStep() {
   if (!isPlayingAudio) return;
-  if (audioIndex >= currentLesson.length) audioIndex = 0; // 循環播放
+  if (audioIndex >= currentLesson.length) audioIndex = 0;
 
   const item = currentLesson[audioIndex];
   document.getElementById("audioStatus").innerText = `正在播放 (${audioIndex + 1}/${currentLesson.length})`;
-  document.getElementById("audioCurrentWord").innerText = `${item.word} ${item.zh}`;
-  document.getElementById("audioCurrentSentence").innerText = item.exEn;
+  document.getElementById("audioCurrentWord").innerText = `${item.word} [${item.pos}]`;
+  document.getElementById("audioCurrentZh").innerText = item.zh;
+  document.getElementById("audioCurrentSentenceEn").innerText = item.exEn;
+  document.getElementById("audioCurrentSentenceZh").innerText = item.exZh;
 
-  // 播放流程：英文單字 -> (停1.5秒) -> 中文翻譯 -> 英文例句 -> (停2秒) -> 下一題
+  // 播放流程：英文單字 -> (停1.5秒) -> 中文翻譯 -> 英文例句 -> 中文例句翻譯 -> (停2秒) -> 下一題
   speak(item.word, 'en-US', () => {
-    setTimeout(() => {
+    audioTimeout = setTimeout(() => {
       if (!isPlayingAudio) return;
       speak(item.zh, 'zh-TW', () => {
-        setTimeout(() => {
+        if (!isPlayingAudio) return;
+        speak(item.exEn, 'en-US', () => {
           if (!isPlayingAudio) return;
-          speak(item.exEn, 'en-US', () => {
-            setTimeout(() => {
+          speak(item.exZh, 'zh-TW', () => {
+            if (!isPlayingAudio) return;
+            audioTimeout = setTimeout(() => {
               if (!isPlayingAudio) return;
               audioIndex++;
               playNextAudioStep();
-            }, 2000); // 例句結束後停頓 2 秒
+            }, 2000); // 結束停頓 2 秒
           });
-        }, 1000);
+        });
       });
-    }, 1500); // 單字唸完停頓 1.5 秒讓大腦思考
+    }, 1500); // 單字後停頓 1.5 秒
   });
-}
-
-function stopAudio() {
-  isPlayingAudio = false;
-  synth.cancel();
 }
 
 // 3. 閃卡模式
@@ -239,26 +258,54 @@ function startFlashcards() {
 }
 
 function showCard() {
+  stopAudio();
   isFlipped = false;
   document.getElementById("cardControls").style.display = "none";
   const item = currentLesson[cardIndex];
-  document.getElementById("flashcardBox").innerHTML = `<div>${item.word}</div><div class="kk">${item.kk}</div><div style="font-size:0.8rem; color:#aaa; margin-top:15px;">(點擊翻牌)</div>`;
+  
+  // 點擊前頁面：第1列英文單字(+音訊鍵), 第2列音標, 第3列詞性, 第4列英文例句(+音訊鍵)
+  document.getElementById("flashcardBox").innerHTML = `
+    <div class="word-title" style="font-size: 1.5rem;">${item.word} 
+      <button class="audio-icon-btn" onclick="event.stopPropagation(); speak('${item.word}')">🔊</button>
+    </div>
+    <div class="kk" style="margin: 5px 0;">${item.kk}</div>
+    <div style="font-size:0.95rem; color:var(--primary); margin-bottom: 10px;">[${item.pos}]</div>
+    <div class="example-en">
+      ${item.exEn} 
+      <button class="audio-icon-btn" onclick="event.stopPropagation(); speak('${item.exEn.replace(/'/g, "\\'")}')">🔊</button>
+    </div>
+    <div style="font-size:0.8rem; color:#aaa; margin-top:15px;">(點擊卡片顯示解答)</div>
+  `;
 }
 
 function flipCard() {
   if (isFlipped) return;
   isFlipped = true;
   const item = currentLesson[cardIndex];
+  
+  // 點擊後頁面：第1列英文單字, 第2列中文, 第3列英文例句, 第4列中文例句(灰色小字)
   document.getElementById("flashcardBox").innerHTML = `
-    <div style="color:var(--primary); font-weight:bold;">${item.word}</div>
-    <div style="margin:10px 0;">${item.zh}</div>
-    <div style="font-size:0.9rem; color:#4f46e5;">${item.exEn}</div>
+    <div class="word-title" style="font-size: 1.5rem;">${item.word}</div>
+    <div style="font-size: 1.1rem; font-weight: bold; margin: 8px 0; color:#10b981;">${item.zh}</div>
+    <div class="example-en">${item.exEn}</div>
+    <div class="example-zh">${item.exZh}</div>
   `;
-  speak(item.word);
+  
   document.getElementById("cardControls").style.display = "block";
+
+  // 翻牌自動語音流程：英文單字 -> 英文單字 -> (停30秒) -> 中文翻譯 -> 英文例句
+  speak(item.word, 'en-US', () => {
+    speak(item.word, 'en-US', () => {
+      audioTimeout = setTimeout(() => {
+        speak(item.zh, 'zh-TW', () => {
+          speak(item.exEn, 'en-US');
+        });
+      }, 30000); // 停頓 30 秒
+    });
+  });
 }
 
-function nextCard(score) {
+function nextCard() {
   cardIndex = (cardIndex + 1) % currentLesson.length;
   showCard();
 }
@@ -273,8 +320,8 @@ function startQuiz() {
 }
 
 function loadQuizQuestion() {
+  stopAudio();
   const item = currentLesson[quizIndex];
-  // 建立填空例句 (將單字替換為 _______)
   const regex = new RegExp(item.word, "gi");
   const blankSentence = item.exEn.replace(regex, "________");
   
