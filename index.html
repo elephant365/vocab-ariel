@@ -293,14 +293,14 @@ function flipCard() {
   
   document.getElementById("cardControls").style.display = "block";
 
-  // 翻牌自動語音流程：英文單字 -> 英文單字 -> (停30秒) -> 中文翻譯 -> 英文例句
+  // 翻牌自動語音流程：英文單字 -> 英文單字 -> (停1秒) -> 中文翻譯 -> 英文例句
   speak(item.word, 'en-US', () => {
     speak(item.word, 'en-US', () => {
       audioTimeout = setTimeout(() => {
         speak(item.zh, 'zh-TW', () => {
           speak(item.exEn, 'en-US');
         });
-      }, 30000); // 停頓 30 秒
+      }, 1000); // 停頓 1 秒
     });
   });
 }
